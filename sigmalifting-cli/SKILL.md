@@ -12,8 +12,27 @@ Use this skill when working with SigmaLifting CLI bundles, especially when turni
 - Treat the CLI as a standalone JSON tool.
 - Use the installed `sigmalifting-cli` executable as the contract and validation engine.
 - Do not rely on Realm, Expo file APIs, or app services for CLI behavior.
+- Stored program changes may cascade into linked process bundles in the CLI JSON store; file-only bundle edits cannot update unrelated files unless the command output is saved to the store.
 - Prefer contract-valid JSON bundles over app-coupled shortcuts.
 - Treat this skill folder as the modeling guide, not as the executable schema.
+
+## Agent Mutation Policy
+
+SigmaLifting JSON is the CLI's internal storage and import/export contract. It is not an agent editing surface.
+
+Agents must not directly create or mutate program/process bundle JSON with file edits, `apply_patch`, ad hoc scripts, `jq`, editor operations, or manual rewrites of files in the CLI store. Reading JSON for diagnosis is allowed; writing JSON directly is not.
+
+All bundle creation and mutation must go through CLI commands:
+
+- create initial bundles with `template`, `program create`, `process create-from-program`, or `xlsx import`
+- change programs with `program add-block`, `program update-block`, `program add-day`, `program update-schedule`, `program add-exercise`, `program update-exercise`, custom-lift commands, and the exercise-progression intent commands such as `program set-anchor`, `program add-set-group`, `program set-week-value`, and `program toggle-backoff`
+- change processes with `process update-*` commands and narrow intent commands such as `process set-one-rm`
+- write command results with `--out` or let the local store persist command output
+- import externally supplied JSON only through `validate`; use `normalize` only when the user explicitly wants CLI cleanup/repair
+
+`validate` is a strict import/acceptance gate for existing JSON. If it fails with repair warnings, use `normalize` to produce the cleaned bundle before inspecting or importing it.
+
+If the CLI does not expose a command for a needed mutation, stop and report the CLI command gap or add the command first. Do not bypass the CLI by patching raw JSON.
 
 ## CLI Discovery
 
@@ -33,9 +52,9 @@ Do not treat this skill file as the schema.
 
 This skill explains modeling judgment: block boundaries, weekly structure, set-group semantics, and common translation mistakes. The installed CLI is the schema source of truth.
 
-Schema mentions in this skill are routing instructions, not schema documentation. They tell the agent which CLI commands to call before editing JSON.
+Schema mentions in this skill are routing instructions, not schema documentation. They tell the agent which CLI commands to call before building CLI payloads or accepting imported JSON.
 
-Before writing or editing JSON, get the executable contract from the CLI:
+Before building CLI command payloads or importing existing JSON, get the executable contract from the CLI:
 
 1. `sigmalifting-cli schema list --compact`
 2. `sigmalifting-cli schema show <kind> --compact`
@@ -57,8 +76,9 @@ Before generating or translating anything similar:
 1. identify the bundle kind the file actually matches
 2. run the standalone CLI against the file exactly as provided
 3. validate it first
-4. normalize it second
+4. if validation reports repair warnings, normalize it and validate the normalized output
 5. only then extract modeling rules from it
+6. make any changes through CLI mutation commands, never by patching the JSON file
 
 If an app-exported file cannot be consumed by the standalone CLI, treat that as a CLI problem to investigate before declaring the modeling wrong.
 
@@ -99,6 +119,20 @@ What should usually force a new block:
 Do not collapse an entire multi-week program into one block just because weekly arrays can encode it.
 
 That is a schema-valid compression, but it is a modeling error under SigmaLifting semantics.
+
+## Variable Parameter Semantics
+
+Every set group has exactly one workout-recorded variable parameter: `weight`, `reps`, or `rpe`.
+
+The other two training numbers are prescribed by the program:
+
+- `variable_parameter: "weight"` means reps and RPE are prescribed, and weight is recorded during the workout.
+- `variable_parameter: "reps"` means weight and RPE are prescribed, and reps are recorded during the workout.
+- `variable_parameter: "rpe"` means weight and reps are prescribed, and RPE is recorded during the workout.
+
+Do not model a set group by prescribing all three numbers. Do not leave two numbers open unless the CLI has a command and schema support for that explicit behavior.
+
+Backoff and fatigue-drop configs are RPE-variable tools in the app model. They are only valid on set groups with `variable_parameter: "rpe"`. If weight is the variable parameter, do not enable `backoff_config`, `fatigue_drop_config`, or mixed-weight prescription.
 
 ## Workflow
 

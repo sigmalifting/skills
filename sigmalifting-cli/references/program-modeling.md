@@ -56,6 +56,18 @@ For real backoff work, the source set group should normally make weight the work
 
 The dependent backoff group itself should not use `variable_parameter: "weight"` when the app is expected to calculate its weight. Record a different variable, usually RPE or reps, while the backoff config supplies the weight.
 
+## Variable Parameter Semantics
+
+Each set group chooses one parameter to record at workout time:
+
+- `weight`: prescribe reps and RPE
+- `reps`: prescribe weight and RPE
+- `rpe`: prescribe weight and reps
+
+The selected variable parameter is not another prescribed progression column. It is the slot the lifter fills in during execution.
+
+Backoff and fatigue-drop behavior depends on runtime performance and is represented in the app as RPE-variable work. Use `variable_parameter: "rpe"` for dependent backoff or fatigue-drop set groups. Do not enable mixed-weight prescription when `variable_parameter` is `weight`, because mixed weight is itself a weight prescription.
+
 ## Anti-Pattern
 
 Bad modeling pattern:
