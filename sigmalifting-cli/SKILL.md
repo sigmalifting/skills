@@ -1,6 +1,6 @@
 ---
 name: sigmalifting-cli
-description: Use when generating, translating, validating, or reviewing SigmaLifting CLI JSON bundles, especially for program structure, block boundaries, weekly layout, and set-group modeling.
+description: Use when the user wants to create, translate, import, validate, inspect, or update powerlifting training programs or workout logs for SigmaLifting using sigmalifting-cli, especially from spreadsheets, manuals, public programs, app exports, program-import bundles, or process-import bundles.
 ---
 
 # SigmaLifting CLI
